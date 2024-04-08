@@ -23,7 +23,6 @@ A Python tool designed for in-depth scraping of Archive of Our Own (AO3) content
 - requests
 - BeautifulSoup
 - tqdm
-- configparser
 
 Install dependencies with `pip install -r requirements.txt`.
 
