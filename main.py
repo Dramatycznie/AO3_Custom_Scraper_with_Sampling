@@ -155,8 +155,8 @@ def scrape_single_work(work, csvwriter, internal_delimiter, delay, user_agent, p
         f.write(work_id + '\n')
 
     # Find the appropriate bin
-    for bin_start in kudos_bins[:-1]:
-        if bin_start <= kudos < bin_start + 1:
+    for bin_start, bin_end in zip(kudos_bins[:-1], kudos_bins[1:]):
+        if bin_start <= kudos < bin_end:
             strata_counts[bin_start] += 1
             break
 
