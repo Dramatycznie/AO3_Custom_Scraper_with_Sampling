@@ -115,7 +115,10 @@ def scrape_single_work(work, csvwriter, internal_delimiter, delay, user_agent, p
         headers = {'User-Agent': user_agent}
         response = requests.get(work_url, headers=headers)
         time.sleep(delay)
-        handle_rate_limit(response, page)
+
+        if not handle_rate_limit(response, page):
+            return  # Skip this work
+
         work_soup = BeautifulSoup(response.text, 'html.parser')
         date_published = get_element_text(work_soup.select_one("dd.published"))
 
@@ -213,12 +216,16 @@ def scrape_works(start_page, end_page, last_visited_page, delay, url, full_csv_p
                     headers = {'User-Agent': user_agent}
                     response = requests.get(updated_url, headers=headers)
                     time.sleep(delay)
-                    handle_rate_limit(response, page)
+
+                    if not handle_rate_limit(response, page):  # catch 4xx/5xx here
+                        raise requests.exceptions.HTTPError(f"Bad status: {response.status_code}")
+
                     soup = BeautifulSoup(response.text, 'html.parser')
-                    break  # exit the loop if successful
+                    break  # success
 
                 except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout,
-                        requests.exceptions.ConnectTimeout, socket.timeout) as e:
+                        requests.exceptions.ConnectTimeout, socket.timeout,
+                        requests.exceptions.HTTPError) as e:
                     print(f"Error scraping page {page}: {e}. Retrying...")
                     retry_count += 1
 
@@ -314,14 +321,20 @@ def apply_sampling(sampling_strategy, sampling_percentage, works_on_page, sampli
 
 # Handle the situation when the rate limit is exceeded
 def handle_rate_limit(response, page):
-    soup = BeautifulSoup(response.text, 'html.parser')
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f"There had been an issue. Skipping. You might need to try again later. {e}")
+        return False  # Don't exit, just return failure
 
+    soup = BeautifulSoup(response.text, 'html.parser')
     if "Retry later" in soup.text:
         print(f"Rate limit exceeded while fetching details. Stopping and saving last visited page: {page}. "
               f"Please try again later. Your progress has been saved.")
-
         input("Press Enter to exit...")
         exit(0)
+
+    return True
 
 
 def main():
