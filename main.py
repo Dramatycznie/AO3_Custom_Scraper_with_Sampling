@@ -117,10 +117,11 @@ def scrape_single_work(work, csvwriter, internal_delimiter, delay, user_agent, p
         time.sleep(delay)
 
         if not handle_rate_limit(response, page):
-            return  # Skip this work
-
-        work_soup = BeautifulSoup(response.text, 'html.parser')
-        date_published = get_element_text(work_soup.select_one("dd.published"))
+            print(f"Could not fetch work page for {work_url}. Setting date_published to 'Unknown'.")
+            date_published = "Unknown"
+        else:
+            work_soup = BeautifulSoup(response.text, 'html.parser')
+            date_published = get_element_text(work_soup.select_one("dd.published"))
 
     except Exception as e:
         print(f"Error fetching details for {work_url}: {e}")
@@ -324,7 +325,7 @@ def handle_rate_limit(response, page):
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        print(f"There had been an issue. Skipping. You might need to try again later. {e}")
+        print(f"There had been an issue. You might need to try again later. {e}")
         return False  # Don't exit, just return failure
 
     soup = BeautifulSoup(response.text, 'html.parser')
